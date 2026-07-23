@@ -3,10 +3,28 @@ import { motion } from 'framer-motion';
 import { RotateCcw, Activity, Eye, BrainCircuit, Heart, AlertTriangle, ShieldAlert, CheckCircle2 } from 'lucide-react';
 
 const Results = ({ data, onReset }) => {
+  const probabilityEntries = Object.entries(
+    data.final.probabilities || data.visual.probabilities || {}
+  ).map(([label, value]) => ({
+    label,
+    value: value <= 1 ? value * 100 : value,
+  }));
+
+  const colorMap = {
+    happy: '#F4B400',
+    aggressive: '#EF4444',
+    angry: '#EF4444',
+    fear: '#A855F7',
+    fearful: '#A855F7',
+    relaxed: '#3B82F6',
+    sad: '#64748B',
+  };
+
   const getEmotionIcon = (emotion) => {
     switch (emotion.toLowerCase()) {
       case 'happy': return <Heart className="w-16 h-16 text-green-400" fill="currentColor" />;
       case 'aggressive': return <AlertTriangle className="w-16 h-16 text-red-500" fill="currentColor" />;
+      case 'angry': return <AlertTriangle className="w-16 h-16 text-red-500" fill="currentColor" />;
       case 'fear': return <ShieldAlert className="w-16 h-16 text-purple-400" fill="currentColor" />;
       default: return <CheckCircle2 className="w-16 h-16 text-[var(--color-gold)]" />;
     }
@@ -149,10 +167,15 @@ const Results = ({ data, onReset }) => {
           >
             <h3 className="text-xl font-bold mb-6">Probability Distribution</h3>
             <div className="space-y-6">
-              <ConfidenceBar label="Happy" value={data.final.emotion === 'Happy' ? data.final.confidence : 5} color="#F4B400" delay={1.3} />
-              <ConfidenceBar label="Aggressive" value={data.final.emotion === 'Aggressive' ? data.final.confidence : 2} color="#EF4444" delay={1.4} />
-              <ConfidenceBar label="Fear" value={data.final.emotion === 'Fear' ? data.final.confidence : 1} color="#A855F7" delay={1.5} />
-              <ConfidenceBar label="Relaxed" value={data.final.emotion === 'Relaxed' ? data.final.confidence : 4} color="#3B82F6" delay={1.6} />
+              {probabilityEntries.map((entry, index) => (
+                <ConfidenceBar
+                  key={entry.label}
+                  label={entry.label}
+                  value={entry.value}
+                  color={colorMap[entry.label.toLowerCase()] || '#F4B400'}
+                  delay={1.3 + (index * 0.1)}
+                />
+              ))}
             </div>
           </motion.div>
 
@@ -165,7 +188,7 @@ const Results = ({ data, onReset }) => {
           >
             <h3 className="text-xl font-bold mb-6">Behavioural Traits</h3>
             <div className="flex flex-wrap gap-2 mb-8">
-              {data.behaviour.map((trait, i) => (
+              {(data.behaviour || []).map((trait, i) => (
                 <span key={i} className="px-4 py-2 bg-white/10 rounded-lg text-sm font-medium border border-white/5">
                   {trait}
                 </span>
