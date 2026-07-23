@@ -1,15 +1,20 @@
 import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { Dog } from 'lucide-react';
+import { motion, useScroll, useTransform } from 'framer-motion';
+import InteractiveNavbarMascot from './InteractiveNavbarMascot';
 
 const Navbar = ({ onNavigate }) => {
   const [scrolled, setScrolled] = useState(false);
+  const { scrollY } = useScroll();
+  
+  // Maps scroll depth to a subtle moving reflection on the glass
+  const reflectionPosition = useTransform(scrollY, [0, 2000], ['-100%', '200%']);
 
   useEffect(() => {
     const handleScroll = () => {
       setScrolled(window.scrollY > 50);
     };
-    window.addEventListener('scroll', handleScroll);
+    // Use passive listener to avoid blocking the main thread during scrolling
+    window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
@@ -18,23 +23,38 @@ const Navbar = ({ onNavigate }) => {
       initial={{ y: -100, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 0.8, ease: "easeOut" }}
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ease-in-out ${
-        scrolled ? 'py-3' : 'py-6'
+      className={`fixed top-6 md:top-8 left-1/2 -translate-x-1/2 z-50 w-[92%] md:w-[80%] max-w-5xl rounded-[2.5rem] transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] overflow-hidden ${
+        scrolled 
+          // Ultra-Premium Floating HUD Glass (Apple Vision Pro Style)
+          ? 'bg-[#050505]/40 backdrop-blur-[48px] saturate-[1.2] border border-white/[0.12] shadow-[0_24px_48px_-12px_rgba(0,0,0,0.6)] shadow-[inset_0_2px_4px_rgba(255,255,255,0.15)] shadow-[inset_0_-2px_6px_rgba(244,180,0,0.08)] shadow-[inset_0_0_30px_rgba(255,255,255,0.03)]' 
+          : 'bg-[#050505]/10 backdrop-blur-[16px] border border-white/[0.08] shadow-[0_8px_24px_-8px_rgba(0,0,0,0.3)] shadow-[inset_0_1px_2px_rgba(255,255,255,0.08)]'
       }`}
     >
-      <div className="max-w-7xl mx-auto px-6">
-        <div className={`flex items-center justify-between rounded-2xl glass-realistic px-6 transition-all duration-500 ${
-          scrolled ? 'py-3' : 'py-4'
+      {/* Subtle dynamic scrolling reflection layer */}
+      <motion.div 
+        className="absolute inset-0 pointer-events-none mix-blend-overlay opacity-40"
+        style={{
+          background: 'linear-gradient(120deg, rgba(255,255,255,0) 20%, rgba(255,255,255,0.3) 50%, rgba(255,255,255,0) 80%)',
+          backgroundSize: '200% 100%',
+          backgroundPositionX: reflectionPosition
+        }}
+      />
+
+      <div className="mx-auto px-6 md:px-8 w-full relative z-10">
+        <div className={`flex items-center justify-between transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+          scrolled ? 'h-12' : 'h-[3.5rem] md:h-14'
         }`}>
-          {/* Logo */}
+          {/* Logo & Mascot */}
           <div 
-            className="flex items-center gap-2 cursor-pointer group"
+            className="flex items-center gap-3 cursor-pointer group"
             onClick={onNavigate}
           >
-            <div className="p-2 rounded-xl bg-gradient-to-br from-yellow-400 to-yellow-600 shadow-[0_0_15px_rgba(244,180,0,0.4)] group-hover:shadow-[0_0_25px_rgba(244,180,0,0.6)] transition-all duration-300">
-              <Dog size={24} className="text-black" />
+            {/* The new unified Interactive Mascot replaces the old static Lucide Dog icon */}
+            <div className="relative z-10 transition-transform duration-300 group-hover:scale-105">
+              <InteractiveNavbarMascot />
             </div>
-            <span className="text-xl tracking-wider flex items-center">
+            
+            <span className="text-xl tracking-wider flex items-center relative z-10">
               <span>
                 <span className="font-medium">Canine</span>
                 <span className="font-bold">Sense</span>

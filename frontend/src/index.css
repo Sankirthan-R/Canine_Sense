@@ -75,15 +75,31 @@
 
 /* Custom Scrollbar */
 ::-webkit-scrollbar {
-  width: 8px;
+  width: 6px;
 }
 ::-webkit-scrollbar-track {
   background: var(--color-dark);
 }
 ::-webkit-scrollbar-thumb {
-  background: #333;
-  border-radius: 4px;
+  background: #222;
+  border-radius: 6px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #555;
+  background: rgba(244, 180, 0, 0.35);
+}
+
+/* Scroll anchor offset so sections clear the fixed navbar */
+section[id] {
+  scroll-margin-top: 80px;
+}
+
+/* Promote heavy animated elements to GPU layer */
+.will-gpu {
+  will-change: transform, opacity;
+}
+
+/* Cinematic section crossfade — applied by JS/Framer when needed */
+.section-fade-up {
+  opacity: 0;
+  transform: translateY(32px);
 }

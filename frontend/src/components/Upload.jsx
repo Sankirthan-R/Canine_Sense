@@ -1,6 +1,9 @@
 import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { UploadCloud, FileVideo, FileAudio, X } from 'lucide-react';
+import { Reveal } from './ScrollAnimations';
+
+const EXPO = [0.16, 1, 0.3, 1];
 
 const Upload = ({ onUpload }) => {
   const [isDragging, setIsDragging] = useState(false);
@@ -50,24 +53,24 @@ const Upload = ({ onUpload }) => {
   };
 
   return (
-    <section id="demo" className="py-24 relative z-30 bg-[var(--color-dark)] border-t border-white/5">
+    <section id="demo" className="py-24 relative z-30 bg-[var(--color-dark)]">
       <div className="max-w-4xl mx-auto px-6">
         <div className="text-center mb-12">
-          <motion.h2 
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="text-3xl md:text-5xl font-bold mb-4"
-          >
-            Experience the <span className="gold-gradient-text">Engine</span>
-          </motion.h2>
-          <p className="text-gray-400">Upload an audio or video clip of your dog to detect their emotional state.</p>
+          <Reveal delay={0}>
+            <h2 className="text-3xl md:text-5xl font-bold mb-4">
+              Experience the <span className="gold-gradient-text">Engine</span>
+            </h2>
+          </Reveal>
+          <Reveal delay={0.12}>
+            <p className="text-gray-400">Upload an audio or video clip of your dog to detect their emotional state.</p>
+          </Reveal>
         </div>
 
-        <motion.div 
-          initial={{ opacity: 0, scale: 0.95 }}
-          whileInView={{ opacity: 1, scale: 1 }}
-          viewport={{ once: true }}
+        <motion.div
+          initial={{ opacity: 0, y: 24, scale: 0.97 }}
+          whileInView={{ opacity: 1, y: 0, scale: 1 }}
+          viewport={{ once: true, margin: '-40px' }}
+          transition={{ duration: 0.75, delay: 0.18, ease: EXPO }}
           className={`relative p-1 rounded-3xl transition-all duration-300 ${
             isDragging ? 'bg-gradient-to-r from-[var(--color-gold)] to-yellow-600 shadow-[0_0_40px_rgba(244,180,0,0.4)]' : 'glass border border-white/10'
           }`}

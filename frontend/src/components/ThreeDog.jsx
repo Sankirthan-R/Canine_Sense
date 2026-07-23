@@ -1,89 +1,45 @@
-import React, { useRef } from 'react';
+import React, { useRef, useEffect, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { Float, MeshDistortMaterial, Sphere } from '@react-three/drei';
+import { useGLTF, useAnimations } from '@react-three/drei';
 import * as THREE from 'three';
 
-const ThreeDog = () => {
-  const group = useRef();
-
-  useFrame((state) => {
-    const t = state.clock.getElapsedTime();
-    // Auto-rotation base
-    const baseRotationY = t / 8;
-    const baseRotationX = Math.cos(t / 4) / 8;
-
-    // Mouse tracking
-    // pointer.x and y are normalized between -1 and 1
-    const targetRotationY = baseRotationY + (state.pointer.x * 0.5);
-    const targetRotationX = baseRotationX - (state.pointer.y * 0.5);
-
-    // Smooth interpolation
-    group.current.rotation.y += (targetRotationY - group.current.rotation.y) * 0.1;
-    group.current.rotation.x += (targetRotationX - group.current.rotation.x) * 0.1;
-  });
-
-  return (
-    <group ref={group}>
-      <Float speed={2} rotationIntensity={0.5} floatIntensity={1}>
-        {/* Hyper-premium metallic / obsidian orb */}
-        <Sphere args={[1.5, 64, 64]} scale={[1, 0.85, 1.1]} position={[0, 0, 0]}>
-          <meshPhysicalMaterial
-            color="#1a1a1a"
-            emissive="#443000"
-            emissiveIntensity={0.3}
-            roughness={0.15}
-            metalness={0.85}
-            clearcoat={1.0}
-            clearcoatRoughness={0.1}
-            reflectivity={1.0}
-          />
-        </Sphere>
-
-        {/* Sleek metallic "Ears" / Nodes */}
-        <Sphere args={[0.25, 32, 32]} position={[-0.8, 1.1, 0.5]}>
-          <meshPhysicalMaterial color="#F4B400" roughness={0.1} metalness={1.0} clearcoat={1.0} />
-        </Sphere>
-        <Sphere args={[0.25, 32, 32]} position={[0.8, 1.1, 0.5]}>
-          <meshPhysicalMaterial color="#F4B400" roughness={0.1} metalness={1.0} clearcoat={1.0} />
-        </Sphere>
-
-        {/* Orbiting particles (Data points) */}
-        <Particles count={60} />
-      </Float>
-    </group>
-  );
-};
-
-const Particles = ({ count }) => {
+// ─── Full Screen Layered Golden Particles ──────────────────────────────────────
+export const GoldParticles = ({ count = 120, spreadX = 20, spreadY = 10, depth = 5 }) => {
   const mesh = useRef();
+  
+  // Create object pooling for matrix transforms
+  const dummy = useMemo(() => new THREE.Object3D(), []);
 
-  const dummy = new THREE.Object3D();
-  const particles = React.useMemo(() => {
+  // Compute particle bounds ONCE on mount
+  const particles = useMemo(() => {
     const temp = [];
     for (let i = 0; i < count; i++) {
-      const t = Math.random() * 100;
-      const factor = 20 + Math.random() * 100;
-      const speed = 0.01 + Math.random() / 200;
-      const xFactor = -2 + Math.random() * 4;
-      const yFactor = -2 + Math.random() * 4;
-      const zFactor = -2 + Math.random() * 4;
-      temp.push({ t, factor, speed, xFactor, yFactor, zFactor, mx: 0, my: 0 });
+      temp.push({
+        t: Math.random() * 100,
+        factor: 20 + Math.random() * 100,
+        speed: 0.003 + Math.random() / 400, 
+        xFactor: -spreadX/2 + Math.random() * spreadX,
+        yFactor: -spreadY/2 + Math.random() * spreadY,
+        zFactor: -depth + Math.random() * (depth * 1.5),   
+      });
     }
     return temp;
-  }, [count]);
+  }, [count, spreadX, spreadY, depth]);
 
-  useFrame(() => {
-    particles.forEach((particle, i) => {
-      let { t, factor, speed, xFactor, yFactor, zFactor } = particle;
-      t = particle.t += speed / 2;
-      const a = Math.cos(t) + Math.sin(t * 1) / 10;
-      const b = Math.sin(t) + Math.cos(t * 2) / 10;
-      const s = Math.max(1.5, Math.cos(t) * 5);
+  // Delta-clock driven animation, totally decoupled from React render loops
+  useFrame((_, delta) => {
+    particles.forEach((p, i) => {
+      // Use time delta to ensure consistent speed regardless of framerate (60 vs 120hz)
+      p.t += p.speed * (delta * 60); 
+      
+      const a = Math.cos(p.t) + Math.sin(p.t * 0.8) * 0.2;
+      const b = Math.sin(p.t) + Math.cos(p.t * 1.5) * 0.2;
+      const s = Math.max(0.5, Math.cos(p.t) * 3); 
 
       dummy.position.set(
-        (particle.mx / 10) * a + xFactor + Math.cos((t / 10) * factor) + (Math.sin(t * 1) * factor) / 10,
-        (particle.my / 10) * b + yFactor + Math.sin((t / 10) * factor) + (Math.cos(t * 2) * factor) / 10,
-        (particle.my / 10) * b + zFactor + Math.cos((t / 10) * factor) + (Math.sin(t * 3) * factor) / 10
+        a * p.xFactor + Math.cos((p.t / 12) * p.factor) * 0.8 + (Math.sin(p.t) * p.factor) / 12,
+        b * p.yFactor + Math.sin((p.t / 12) * p.factor) * 0.8 + (Math.cos(p.t * 1.5) * p.factor) / 12,
+        p.zFactor + Math.cos((p.t / 10) * p.factor) / 4
       );
       dummy.scale.set(s, s, s);
       dummy.updateMatrix();
@@ -93,11 +49,157 @@ const Particles = ({ count }) => {
   });
 
   return (
-    <instancedMesh ref={mesh} args={[null, null, count]}>
-      <sphereGeometry args={[0.02, 16, 16]} />
-      <meshStandardMaterial color="#F4B400" emissive="#F4B400" emissiveIntensity={2} />
+    <instancedMesh ref={mesh} args={[null, null, count]} renderOrder={-1}>
+      <sphereGeometry args={[0.012, 12, 12]} />
+      <meshStandardMaterial
+        color="#F4B400"
+        emissive="#F4B400"
+        emissiveIntensity={1.2} // Softer emissive intensity for text legibility
+        transparent
+        opacity={0.4} // Softer opacity
+        depthWrite={false}
+      />
     </instancedMesh>
   );
 };
+
+// ─── Main dog scene ────────────────────────────────────────────────────────────
+const ThreeDog = () => {
+  const groupRef = useRef();          
+  const floatRef = useRef();          
+  const clockRef = useRef(0);
+
+  // Load GLB 
+  const { scene, animations } = useGLTF('/models/cute puppy 3d model_Clone1.glb');
+
+  // Clone scene precisely once
+  const clonedScene = useMemo(() => {
+    const clone = scene.clone(true);
+    clone.traverse((node) => {
+      if (node.isMesh) {
+        node.castShadow = true;
+        node.receiveShadow = true;
+        if (node.material) {
+          node.material.needsUpdate = true;
+        }
+      }
+    });
+    return clone;
+  }, [scene]);
+
+  // ── STRICT STATIC Auto-fit: compute bounding box ONCE ──────────────
+  const { scale, offsetX, offsetY, offsetZ } = useMemo(() => {
+    const box = new THREE.Box3().setFromObject(clonedScene);
+    const size = new THREE.Vector3();
+    box.getSize(size);
+    const center = new THREE.Vector3();
+    box.getCenter(center);
+
+    const maxDim = Math.max(size.x, size.y, size.z);
+    const targetSize = 4.0; // Fixed rigid target volume                       
+    const s = targetSize / maxDim;
+
+    // Center the asset on X and Z axis
+    const x = -center.x * s;
+    const z = -center.z * s;
+
+    // ── Precise Y-Axis Translation to Prevent Bottom Clipping ──
+    // -center.y * s places the absolute middle of the model at y=0.
+    // We then translate upward by exactly half the scaled height (size.y / 2) * s 
+    // This forces the lowest vertices (the paws) to sit exactly at y=0.
+    // We add a cushion padding (0.15) to give it breathing room against the viewport fold.
+    const padding = 0.15;
+    const y = (-center.y * s) + ((size.y / 2) * s) + padding;
+
+    return {
+      scale: s,
+      offsetX: x,
+      offsetY: y,
+      offsetZ: z,
+    };
+  }, [clonedScene]); // Only ever runs on initial clone creation
+
+  // ── Animations ────────────────────────────────────────────────────────────────
+  const { actions, names } = useAnimations(animations, clonedScene);
+
+  useEffect(() => {
+    if (!names.length) return;
+
+    const idleName = names.find((n) => n.toLowerCase().includes('idle')) || names[0];
+    const action = actions[idleName];
+    
+    if (action) {
+      action.reset().setLoop(THREE.LoopRepeat, Infinity).fadeIn(0.4).play();
+    }
+
+    return () => {
+      if (action) action.fadeOut(0.4);
+    };
+  }, [actions, names]);
+
+  // ── Per-frame: float, breathing, mouse-follow (Delta Clock) ─────────────────
+  useFrame((state, delta) => {
+    clockRef.current += delta;
+    const t = clockRef.current;
+
+    // Ambient floating based entirely on R3F internal delta time
+    const floatY = Math.sin(t * 0.7) * 0.1;
+    const breathe = 1 + Math.sin(t * 1.5) * 0.008;
+
+    if (floatRef.current) {
+      floatRef.current.position.y = floatY;
+      floatRef.current.scale.y = breathe;
+    }
+
+    // Mouse-follow and Scroll-reaction — lerped using THREE.MathUtils instead of React state
+    if (groupRef.current) {
+      // 1. Cursor Reaction (Noticeably more curious and responsive)
+      const targetY = state.pointer.x * (Math.PI / 10);   // Horizontal track
+      const targetX = -state.pointer.y * (Math.PI / 16);  // Vertical track
+      const targetZ = -state.pointer.x * (Math.PI / 36);  // Subtle body lean
+      
+      // 2. Scroll Reaction (Passive scroll reading without triggering React re-renders)
+      const scrollY = window.scrollY || 0;
+      // Slight downward head tilt based on scroll depth (max 10 degrees at 1000px scroll)
+      const scrollTilt = Math.min(scrollY * 0.0003, Math.PI / 18); 
+
+      // 3. 120Hz Damping 
+      // Normalizing rotation damping to delta prevents jitter at 120hz
+      const damping = 1 - Math.exp(-6 * delta);
+
+      groupRef.current.rotation.y = THREE.MathUtils.lerp(
+        groupRef.current.rotation.y, 
+        targetY, 
+        damping
+      );
+      groupRef.current.rotation.x = THREE.MathUtils.lerp(
+        groupRef.current.rotation.x, 
+        targetX + scrollTilt, 
+        damping
+      );
+      groupRef.current.rotation.z = THREE.MathUtils.lerp(
+        groupRef.current.rotation.z, 
+        targetZ, 
+        damping
+      );
+    }
+  });
+
+  return (
+    <group ref={groupRef}>
+      <group ref={floatRef}>
+        <primitive
+          object={clonedScene}
+          scale={scale}
+          // Shifted exactly 10% to the left for better visual flow with the text
+          position={[offsetX - 0.4, offsetY, offsetZ]}
+        />
+      </group>
+    </group>
+  );
+};
+
+// Preload the asset
+useGLTF.preload('/models/cute puppy 3d model_Clone1.glb');
 
 export default ThreeDog;
