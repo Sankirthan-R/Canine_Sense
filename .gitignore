@@ -20,3 +20,24 @@ pnpm-debug.log*
 # OS
 .DS_Store
 Thumbs.db
+
+# =========================
+# Python Backend
+# =========================
+
+# Python cache
+__pycache__/
+*.py[cod]
+
+# Virtual environment
+.venv/
+
+# Pytest cache
+.pytest_cache/
+
+# Uploaded/temp files
+backend/data/uploads/*
+!backend/data/uploads/.gitkeep
+
+# Temporary files
+*.log
